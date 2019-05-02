@@ -9,13 +9,12 @@
 
 void error(const char *msg) { perror(msg); exit(0); } // Error function used for reporting issues.
 void sendUserHandle(int socketFD, char userHandle[12], char *portNumber);
+int sendMessage(int socketFD, char userHandle[12]);
 
 int main(int argc, char *argv[]) {
-    int socketFD, portNumber, charsWritten, charsRead;
+    int socketFD, portNumber, charsRead;
     struct sockaddr_in serverAddress;
     struct hostent* serverHostInfo;
-    char message[512];
-    char messageBuffer[512];
     char buffer[512];   // Buffer.
     char userHandle[12];    // Array to store user's handle.
     
@@ -48,20 +47,16 @@ int main(int argc, char *argv[]) {
     userHandle[strcspn(userHandle, "\n")] = '\0'; // Remove the trailing \n that fgets adds.
     
     // Clear the input stream of any extra characters entered.
+    // https://stackoverflow.com/questions/26192830/what-does-this-do-whilec-getchar-n-c-eof
     if(strlen(userHandle) > 9) {
         int c;
-        while ((c = getchar()) != '\n' && c != EOF);
+        while ((c = getchar()) != '\n' && c != EOF);    // Read until we find a new line character or EOF.
     }
 
     // Add '>' to the user's handle, as specified in the assignment instructions.
     userHandle[strlen(userHandle)] = '>';
     // Add ' ' to the end of the user's handle to separate handle from entered text.
     userHandle[strlen(userHandle)] = ' ';
-    // Get user's message.
-    // memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
-    // fgets(buffer, sizeof(buffer) - 1, stdin); // Get input from the user, trunc to buffer - 1 chars, leaving \0.
-    // buffer[strcspn(buffer, "\n")] = '\0'; // Remove the trailing \n that fgets adds.
-    // strcpy(buffer, userName);
 
     // Send initial message to the server.
     sendUserHandle(socketFD, userHandle, argv[2]);
@@ -73,47 +68,12 @@ int main(int argc, char *argv[]) {
     if (charsRead < 0) error("CLIENT: ERROR reading from socket");  // Throw an error.
     printf("%s\"\n", buffer);   // Print the message sent from the server.
 
-    if(strstr(buffer, "\\quit") != NULL) {
-        printf("Connection terminated by the chat server.");
-        return -1;
+    if(strstr(buffer, "\\quit") != NULL) {  // If the user has entered the quit command:
+        printf("Connection terminated by the chat server.");    // Print message.
+        return -1;  // Exit the program.
     }
 
-    // Send message back to the server.
-    memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
-    strcpy(buffer, userHandle);
-
-    memset(messageBuffer, '\0', sizeof(messageBuffer));
-
-    // Prompt the user to enter a message.
-    printf(userHandle);
-    if ((fgets(messageBuffer, 500-1, stdin) == NULL)) {
-        fprintf(stderr, "ERROR reading message.\n");
-        return -1;
-    }
-    // Remove the trailing \n that fgets adds.
-    messageBuffer[strcspn(messageBuffer, "\n")] = 0;
-
-    // Clear the input stream of any extra characters entered.
-    if(strlen(messageBuffer) > 500) {
-        int c;
-        while ((c = getchar()) != '\n' && c != EOF);
-    }
-
-    // Check for quit command.
-    if(strncmp(messageBuffer, "\\quit", 4) == 0) {
-        charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server.
-        if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
-        if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
-        printf("Chat session ended.\n");
-        close(socketFD);    // Close the socket.
-        return -2;
-    }
-    else {
-        strcat(message, messageBuffer);
-        charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server.
-        if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
-        if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
-    }
+    sendMessage(socketFD, userHandle);
 
 
 
@@ -129,4 +89,48 @@ void sendUserHandle(int socketFD, char userHandle[12], char *portNumber) {
     charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server.
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
     if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
+}
+
+int sendMessage(int socketFD, char userHandle[12]) {
+    int charsWritten;
+    char buffer[512];   // Buffer.
+    char messageBuffer[512];
+    // Send message back to the server.
+    memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
+    strcpy(buffer, userHandle); // Copy the user's handle into the buffer.
+
+    // Clear buffer that holds the user's message before use.
+    memset(messageBuffer, '\0', sizeof(messageBuffer));
+
+    // Prompt the user to enter a message.
+    printf(userHandle); // userHandle >
+    if ((fgets(messageBuffer, 500-1, stdin) == NULL)) { // If no message is entered:
+        fprintf(stderr, "ERROR reading message.\n");    // Throw an error.
+        return -1;  // Exit the program.
+    }
+    // Remove the trailing \n that fgets adds.
+    messageBuffer[strcspn(messageBuffer, "\n")] = 0;
+
+    // Clear the input stream of any extra characters entered.
+    if(strlen(messageBuffer) > 500) {
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF);
+    }
+
+    // Check to see if user has entered the quit command.
+    if(strncmp(messageBuffer, "\\quit", 4) == 0) {
+        charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server.
+        if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
+        if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
+        printf("Chat session ended.\n");
+        close(socketFD);    // Close the socket.
+        return -2;
+    }
+    else {  // Otherwise, send the user's message.
+        strcat(buffer, messageBuffer);  // Concatenate the message with the user's handle.
+        charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server.
+        if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
+        if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
+    }
+    return 0;
 }
