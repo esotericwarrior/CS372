@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "ERROR reading handle.\n"); // Throw an error.
         exit(1);
     }
-    handle[strcspn(handle, "\n")] = '\0'; // Remove the trailing \n that fgets adds.
+    userHandle[strcspn(userHandle, "\n")] = '\0'; // Remove the trailing \n that fgets adds.
     
     // Clear the input stream of any extra characters entered.
     if(strlen(userHandle) > 9) {
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
     // Send initial message to the server.
     memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
     strcpy(buffer, userHandle);
-    strcat(buffer, portNumber);
+    strncat(buffer, portNumber);
     charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server.
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
     if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
