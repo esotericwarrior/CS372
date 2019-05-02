@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
     // Get handle from user.
     memset(userHandle, '\0', 12);
     printf("Please enter a username of no more than 10 characters: ");
-    if((fgets(handle, 11, stdin) == NULL)) {    // If no handle is entered:
+    if((fgets(userHandle, 11, stdin) == NULL)) {    // If no handle is entered:
         fprintf(stderr, "ERROR reading handle.\n"); // Throw an error.
         exit(1);
     }
@@ -53,9 +53,9 @@ int main(int argc, char *argv[]) {
     }
 
     // Add '>' to the user's handle, as specified in the assignment instructions.
-    handle[strlen(userHandle) = '>'];
+    userHandle[strlen(userHandle)] = '>';
     // Add ' ' to the end of the user's handle to separate handle from entered text.
-
+    userHandle[strlen(userHandle)] = ' ';
     // Get user's message.
     // memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
     // fgets(buffer, sizeof(buffer) - 1, stdin); // Get input from the user, trunc to buffer - 1 chars, leaving \0.
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
     // Send initial message to the server.
     memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
     strcpy(buffer, userHandle);
-    strcat(buffer, port);
+    strcat(buffer, portNumber);
     charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server.
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
     if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
     printf("%s\"\n", buffer);   // Print the message sent from the server.
 
     if(strstr(buffer, "\\quit") != NULL) {
-        printf("Connection terminated by the chat server.")
+        printf("Connection terminated by the chat server.");
         return -1;
     }
 
@@ -85,12 +85,11 @@ int main(int argc, char *argv[]) {
     memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
     strcpy(buffer, userHandle);
 
-    char messageBuffer[500];
     memset(messageBuffer, '\0', sizeof(messageBuffer));
 
     // Prompt the user to enter a message.
     printf(userHandle);
-    if ((fgets(messageBuffer, MESSAGE_SIZE-1, stdin) == NULL)) {
+    if ((fgets(messageBuffer, 500-1, stdin) == NULL)) {
         fprintf(stderr, "ERROR reading message.\n");
         return -1;
     }
