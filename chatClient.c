@@ -13,7 +13,9 @@ int main(int argc, char *argv[]) {
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
     struct hostent* serverHostInfo;
-    char buffer[256];   // Buffer.
+    char message[512];
+    char messageBuffer[512];
+    char buffer[512];   // Buffer.
     char userHandle[12];    // Array to store user's handle.
     
     if (argc < 3) { fprintf(stderr,"USAGE: %s hostname port\n", argv[0]); exit(0); } // Check usage & args.
@@ -39,7 +41,7 @@ int main(int argc, char *argv[]) {
     memset(userHandle, '\0', 12);
     printf("Please enter a username of no more than 10 characters: ");
     if((fgets(handle, 11, stdin) == NULL)) {    // If no handle is entered:
-        fprintf(stderr, "Error reading handle.\n"); // Throw an error.
+        fprintf(stderr, "ERROR reading handle.\n"); // Throw an error.
         exit(1);
     }
     handle[strcspn(handle, "\n")] = '\0'; // Remove the trailing \n that fgets adds.
@@ -55,12 +57,15 @@ int main(int argc, char *argv[]) {
     // Add ' ' to the end of the user's handle to separate handle from entered text.
 
     // Get user's message.
-    memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
-    fgets(buffer, sizeof(buffer) - 1, stdin); // Get input from the user, trunc to buffer - 1 chars, leaving \0.
-    buffer[strcspn(buffer, "\n")] = '\0'; // Remove the trailing \n that fgets adds.
-    strcpy(buffer, userName);
+    // memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
+    // fgets(buffer, sizeof(buffer) - 1, stdin); // Get input from the user, trunc to buffer - 1 chars, leaving \0.
+    // buffer[strcspn(buffer, "\n")] = '\0'; // Remove the trailing \n that fgets adds.
+    // strcpy(buffer, userName);
 
-    // Send message to server.
+    // Send initial message to the server.
+    memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
+    strcpy(buffer, userHandle);
+    strcat(buffer, port);
     charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server.
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
     if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
@@ -68,8 +73,53 @@ int main(int argc, char *argv[]) {
     // Get return message from server.
     memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer again for reuse.
     charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); // Read data from the socket, leaving \0 at end.
-    if (charsRead < 0) error("CLIENT: ERROR reading from socket");
-    printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
+    if (charsRead < 0) error("CLIENT: ERROR reading from socket");  // Throw an error.
+    printf("%s\"\n", buffer);   // Print the message sent from the server.
+
+    if(strstr(buffer, "\\quit") != NULL) {
+        printf("Connection terminated by the chat server.")
+        return -1;
+    }
+
+    // Send message back to the server.
+    memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
+    strcpy(buffer, userHandle);
+
+    char messageBuffer[500];
+    memset(messageBuffer, '\0', sizeof(messageBuffer));
+
+    // Prompt the user to enter a message.
+    printf(userHandle);
+    if ((fgets(messageBuffer, MESSAGE_SIZE-1, stdin) == NULL)) {
+        fprintf(stderr, "ERROR reading message.\n");
+        return -1;
+    }
+    // Remove the trailing \n that fgets adds.
+    messageBuffer[strcspn(messageBuffer, "\n")] = 0;
+
+    // Clear the input stream of any extra characters entered.
+    if(strlen(messageBuffer) > 500) {
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF);
+    }
+
+    // Check for quit command.
+    if(strncmp(messageBuffer, "\\quit", 4) == 0) {
+        charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server.
+        if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
+        if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
+        printf("Chat session ended.\n");
+        close(socketFD);    // Close the socket.
+        return -2;
+    }
+    else {
+        strcat(message, messageBuffer);
+        charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server.
+        if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
+        if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
+    }
+
+
 
     close(socketFD); // Close the socket.
     return 0;
