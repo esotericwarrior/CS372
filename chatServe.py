@@ -37,7 +37,7 @@ def chat(connection):
             exit(1)
 
         print(clientMessage)
-            if clientMessage == "\quit":	# Quit command.
+        if clientMessage == "\quit":	# Quit command.
             print('Client closed the connection')
             connection.close()	# Close the connection.
             break
