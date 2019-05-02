@@ -50,7 +50,8 @@ def chat(connection):
         # only get the first 500 chars
         serverMessage = serverChat[:500]
         connection.send(serverMessage)
-        if serverMessage.find(exitMessage) != -1:
+        # if serverMessage.find(exitMessage) != -1:
+        if serverMessage == "\quit":    # Quit command.
             print('Server closed the connection')
             connection.close()
             break
