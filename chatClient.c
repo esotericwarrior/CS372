@@ -44,6 +44,16 @@ int main(int argc, char *argv[]) {
     }
     handle[strcspn(handle, "\n")] = '\0'; // Remove the trailing \n that fgets adds.
     
+    // Clear the input stream of any extra characters entered.
+    if(strlen(userHandle) > 9) {
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF);
+    }
+
+    // Add '>' to the user's handle, as specified in the assignment instructions.
+    handle[strlen(userHandle) = '>'];
+    // Add ' ' to the end of the user's handle to separate handle from entered text.
+
     // Get user's message.
     memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
     fgets(buffer, sizeof(buffer) - 1, stdin); // Get input from the user, trunc to buffer - 1 chars, leaving \0.
