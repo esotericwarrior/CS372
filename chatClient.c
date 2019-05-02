@@ -8,6 +8,7 @@
 #include <netdb.h> 
 
 void error(const char *msg) { perror(msg); exit(0); } // Error function used for reporting issues.
+void sendUserHandle(int socketFD, char userHandle[12], char *portNumber);
 
 int main(int argc, char *argv[]) {
     int socketFD, portNumber, charsWritten, charsRead;
@@ -63,12 +64,8 @@ int main(int argc, char *argv[]) {
     // strcpy(buffer, userName);
 
     // Send initial message to the server.
+    sendUserHandle(socketFD, userHandle, argv[2]);
     memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer array.
-    strcpy(buffer, userHandle);
-    strncat(buffer, portNumber);
-    charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server.
-    if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
-    if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
 
     // Get return message from server.
     memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer again for reuse.
@@ -122,4 +119,14 @@ int main(int argc, char *argv[]) {
 
     close(socketFD); // Close the socket.
     return 0;
+}
+
+void sendUserHandle(int socketFD, char userHandle[12], char *portNumber) {
+    int charsWritten;
+    char buffer[512];
+    strcpy(buffer, userHandle);
+    strcat(buffer, portNumber);
+    charsWritten = send(socketFD, buffer, strlen(buffer), 0); // Write to the server.
+    if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
+    if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
 }
