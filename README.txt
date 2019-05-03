@@ -24,6 +24,7 @@ the server's response.
 the server sends the message, the client will display it and prompt
 you to send a message back to the server.
 6. You can continue to send messages back and forth for as long as
+you wish.
 7. To terminate the chat session, type '\quit' from either the server
 or the client.
 8. The server will continue listening for future client requests until

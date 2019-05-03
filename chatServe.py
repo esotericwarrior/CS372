@@ -11,9 +11,9 @@ import socket
 import sys
 
 def setupConnection(port):  # Function responsible for setting up the socket.
-    # Create a TCP/IP socket
+    # Create a TCP/IP socket.
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Bind the socket to the port
+    # Bind the socket to the port.
     HOST = socket.gethostname()
     PORT = int(port)
     print('HOST: ', HOST)   # Print Host information to make connecting with the chat client easier.
@@ -62,14 +62,13 @@ def main(argv):
         exit(1)
     # Call setupConnection to create socket.
     sock = setupConnection(argv[1])
-    while 1:
-        # Wait for a connection
-        print "Socket now listening on port #", argv[1]
-        connection, client_address = sock.accept()
+    while 1: # Wait for a connection until quit command is sent or received.
+        print "Socket now listening on port #", argv[1] # Print message to console.
+        connection, client_address = sock.accept()  # Wait for incoming connection.
 
         try:    # Test for errors.
-            print('connection from', client_address)
-            chat(connection)
+            print('connection from', client_address)    # Print to console.
+            chat(connection)    # Call chat function.
         finally:    # Execute
             connection.close()  # Clean up and close the connection.
 
