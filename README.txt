@@ -6,16 +6,16 @@ Simple TCP/IP Client-Server Network Chat Application
 Instructions for compiling chatClient.c
 1. To compile chatClient.c, run 'make' command.
 
-Instruction for running chatServe.py & chatClient.c
+Instructions for running chatServe.py & chatClient.c
 1. To run chatServe.py, run 'python chatServe.py [port]' command,
 where [port] is the port number you choose to start the server
 on (without the brackets). The server is now running.
 2. The server will print the HOST and PORT to the console. This
 information will be used to run chatClient.c
-3. To start the chat client, run 'chatClient [hostname] [port]',
-where [hostname] = HOST and [port] = PORT from the previous step,
-without the brackets. The chat client should now be connected to the
-server.
+3. To start the chat client, open another terminal window and run 
+'chatClient [hostname] [port]', where [hostname] = HOST and
+[port] = PORT from the previous step, without the brackets.
+The chat client should now be connected to the server.
 4. Now that the connection has been established, the chat client will
 prompt you to enter a user handle. Once you enter the handle and press
 ENTER, that information will be sent to the server, and will wait for
