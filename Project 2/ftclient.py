@@ -20,14 +20,11 @@ def setupConnection(server_port):  # Function responsible for setting up the soc
     PORT = int(sys.argv[portNum])	# Transform the port into an integer.
     print('HOST: ', HOST)   # Print Host information to make connecting with the chat client easier.
     print('PORT:', PORT)    # Print the Port as well.
-    try:    # Test for errors.
-        sock.bind((HOST, PORT))
-    except socket.error as msg: # If there are errors, handle them.
-        print 'ERROR on binding'    # Print error message.
-        exit(1) # Exit 
-    print('Socket bind complete')   # Success message.
 
-    sock.listen(5)  # Flip the socket on - it can now receive up to 5 connections.
+    try:
+    	sock.connect((HOST, PORT))
+    except:
+    	print("Error connecting to port %d" % (PORT), 1)
     return sock     # Return created socket to be stored in a variable for later use.
 
 def validate_args():
