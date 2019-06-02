@@ -95,36 +95,77 @@ if __name__ == "__main__":
 		sendCommand(server_port, command)
 		receivedMessage = clientSocket.recv(1024)
 		print("Receiving directory structure from " + server_name + ":" + server_port)
+		# Send filename.
+		clientSocket.send(filename)
+		#receivedMessage = clientSocket.recv(1024)
+		#print("Message received from server: " + receivedMessage)
 
-	# Send filename.
-	clientSocket.send(filename)
-	#receivedMessage = clientSocket.recv(1024)
-	#print("Message received from server: " + receivedMessage)
-
-	# Send data port.
-	clientSocket.send(data_port)
-	receivedMessage = clientSocket.recv(1024)
-	#print("Message received from server: " + receivedMessage)
-
-	# Receive size of directory.
-	# https://stackoverflow.com/questions/33913308/socket-module-how-to-send-integer
-	size = clientSocket.recv(4)
-	# print "size is ", size
-	# print "repr(size) is ", repr(size)
-	dir_size = struct.unpack("!i", size)[0]
-	#print "Number of files in directory = ", dir_size
-	clientSocket.send("ok")
-
-	times_to_repeat = dir_size
-	while times_to_repeat >= 0:
+		# Send data port.
+		clientSocket.send(data_port)
 		receivedMessage = clientSocket.recv(1024)
-		if (receivedMessage != "@"):
-			print receivedMessage
-			clientSocket.send("ok")
-			times_to_repeat -= 1
-		elif (receivedMessage == "@"):
-			break
+		#print("Message received from server: " + receivedMessage)
 
+		# Receive size of directory.
+		# https://stackoverflow.com/questions/33913308/socket-module-how-to-send-integer
+		size = clientSocket.recv(4)
+		# print "size is ", size
+		# print "repr(size) is ", repr(size)
+		dir_size = struct.unpack("!i", size)[0]
+		#print "Number of files in directory = ", dir_size
+		clientSocket.send("ok")
+
+		times_to_repeat = dir_size
+		while times_to_repeat >= 0:
+			receivedMessage = clientSocket.recv(1024)
+			if (receivedMessage != "@"):
+				print receivedMessage
+				clientSocket.send("ok")
+				times_to_repeat -= 1
+			elif (receivedMessage == "@"):
+				break
+	elif command == '-g':
+		# print("Get command received.")
+		sendCommand(server_port, command)
+		receivedMessage = clientSocket.recv(1024)
+		# print("Receiving directory structure from " + server_name + ":" + server_port)		
+		# Send filename.
+		clientSocket.send(filename)
+		#receivedMessage = clientSocket.recv(1024)
+		#print("Message received from server: " + receivedMessage)
+
+		# Send data port.
+		clientSocket.send(data_port)
+		receivedMessage = clientSocket.recv(1024)
+		#print("Message received from server: " + receivedMessage)
+
+	# # Send filename.
+	# clientSocket.send(filename)
+	# #receivedMessage = clientSocket.recv(1024)
+	# #print("Message received from server: " + receivedMessage)
+
+	# # Send data port.
+	# clientSocket.send(data_port)
+	# receivedMessage = clientSocket.recv(1024)
+	# #print("Message received from server: " + receivedMessage)
+
+	# # Receive size of directory.
+	# # https://stackoverflow.com/questions/33913308/socket-module-how-to-send-integer
+	# size = clientSocket.recv(4)
+	# # print "size is ", size
+	# # print "repr(size) is ", repr(size)
+	# dir_size = struct.unpack("!i", size)[0]
+	# #print "Number of files in directory = ", dir_size
+	# clientSocket.send("ok")
+
+	# times_to_repeat = dir_size
+	# while times_to_repeat >= 0:
+	# 	receivedMessage = clientSocket.recv(1024)
+	# 	if (receivedMessage != "@"):
+	# 		print receivedMessage
+	# 		clientSocket.send("ok")
+	# 		times_to_repeat -= 1
+	# 	elif (receivedMessage == "@"):
+	# 		break
 
 	# receivedMessage = clientSocket.recv(1024)
 	# print("Index 0: " + receivedMessage)
