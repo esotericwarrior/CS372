@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 	if (establishedConnectionFD < 0) error("ERROR on accept");
 
 	/* Get host name from the client. */
-	memset(buffer, '\0', 256);
+	memset(buffer, '\0', sizeof(buffer));
 	charsRead = recv(establishedConnectionFD, buffer, 255, 0); // Read the client's message from the socket
 	if (charsRead < 0) error("ERROR reading from socket");
 	//printf("SERVER: I received this from the client: \"%s\"\n", buffer);
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
 	printf("Connection from %s\n", clientHost);	// Print message, as per instructions.
 
 	/* Get command from the client. */
-	memset(buffer, '\0', 256);
+	memset(buffer, '\0', sizeof(buffer));
 	charsRead = recv(establishedConnectionFD, buffer, 255, 0); // Read the client's message from the socket
 	if (charsRead < 0) error("ERROR reading from socket");
 	//printf("SERVER: I received this from the client: \"%s\"\n", buffer);
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
 	charsRead = send(establishedConnectionFD, "I am the server, and I got your message", 39, 0); // Send success back
 
 	/* Get filename from the client. */
-	memset(buffer, '\0', 256);
+	memset(buffer, '\0', sizeof(buffer));
 	charsRead = recv(establishedConnectionFD, buffer, 255, 0); // Read the client's message from the socket
 	if (charsRead < 0) error("ERROR reading from socket");
 	//printf("SERVER: I received this from the client: \"%s\"\n", buffer);
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
 	charsRead = send(establishedConnectionFD, "I am the server, and I got your message", 39, 0); // Send success back
 
 	/* Get the data port from the client. */
-	memset(buffer, '\0', 256);
+	memset(buffer, '\0', sizeof(buffer));
 	charsRead = recv(establishedConnectionFD, buffer, 255, 0); // Read the client's message from the socket
 	if (charsRead < 0) error("ERROR reading from socket");
 	//printf("SERVER: I received this from the client: \"%s\"\n", buffer);
@@ -132,14 +132,14 @@ int main(int argc, char *argv[]) {
 		int converted_number = htonl(number_to_send);
 		/* Send the size of the directory to the client. */
 		charsRead = send(establishedConnectionFD, &converted_number, sizeof(converted_number), 0);
-		memset(buffer, '\0', 256);
+		memset(buffer, '\0', sizeof(buffer));
 		charsRead = recv(establishedConnectionFD, buffer, 255, 0); /* Read the client's message from the socket. */
 		if (charsRead < 0) error("ERROR reading from socket");
 		printf("Sending directory contents to %s:%s\n", clientHost, data_port);	/* Print message as specified by instructions. */
 		for (i = 0; i < (count+1); i++) {
 			// printf("Index[%d]: %s\n", i, current_dir[i]);
 			charsRead = send(establishedConnectionFD, current_dir[i], strlen(current_dir[i]), 0);
-			memset(buffer, '\0', 256);
+			memset(buffer, '\0', sizeof(buffer));
 			charsRead = recv(establishedConnectionFD, buffer, 255, 0); // Read the client's message from the socket
 			if (charsRead < 0) error("ERROR reading from socket");
 			//printf("SERVER: I received this from the client: \"%s\"\n", buffer);
@@ -176,12 +176,12 @@ int main(int argc, char *argv[]) {
 	    	send(establishedConnectionFD, file_found, 11, 0);
 	    	/* Open file and copy contents to buffer. */
 	    	FILE* fileToRead = fopen(filename, "r");
-	    	fgets(buffer, 50000, fileToRead);
+	    	fgets(buffer, sizeof(buffer) - 1, fileToRead);
 	    	buffer[strcspn(buffer, "\n")] = '*'; // Remove the trailing \n that fgets adds with special character '*'.
 	    	fclose(fileToRead);
 	    	printf("%s\n", buffer);
-	    	charsRead = send(establishedConnectionFD, buffer, strlen(buffer), 0);
-	    	if (charsRead < 0) error("ERROR reading from socket");
+	    	charsWritten = send(establishedConnectionFD, buffer, strlen(buffer), 0);
+	    	if (charsWritten < 0) error("ERROR reading from socket");
 
 	    }	    
 	}
@@ -288,7 +288,7 @@ int searchForFile(int count, char current_dir[count + 1][256], char * filename) 
 // 	for (i = 0; i < (count+1); i++) {
 // 		printf("Index[%d]: %c\n", i, current_dir[i]);
 // 		charsRead = send(establishedConnectionFD, current_dir[i], strlen(current_dir[i]), 0);
-// 		memset(buffer, '\0', 256);
+// 		memset(buffer, '\0', sizeof(buffer));
 // 		charsRead = recv(establishedConnectionFD, buffer, 255, 0); // Read the client's message from the socket
 // 		if (charsRead < 0) error("ERROR reading from socket");
 // 		//printf("SERVER: I received this from the client: \"%s\"\n", buffer);
