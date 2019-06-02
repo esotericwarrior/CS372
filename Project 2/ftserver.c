@@ -13,12 +13,21 @@
 #include <netinet/in.h>
 
 void error(const char *msg) { perror(msg); exit(1); } // Error function used for reporting issues
+int countFiles(struct dirent *de, int count);
+int getDirectory(struct dirent *de, int count, char current_dir[count + 1][256]);
+int searchForFile(int count, char current_dir[count + 1][256], char * filename);
+char ** create_string_array(int size);
+int does_file_exist(char ** files, int count, char * filename);
 
 int main(int argc, char *argv[]) {
-	int i, listenSocketFD, establishedConnectionFD, portNumber, charsRead;
+	int i, listenSocketFD, establishedConnectionFD, portNumber, charsRead, charsWritten;
 	socklen_t sizeOfClientInfo;
+	//int count = 0;	/* Variable to hold the number of files found in directory. */
 	char buffer[256];
+	// char current_dir[count + 1][256];	// 2D Array to hold the directory.
 	struct sockaddr_in serverAddress, clientAddress;
+	struct dirent *de;	// Pointer for directory entry.
+
 
 	if (argc < 2) { fprintf(stderr,"USAGE: %s port\n", argv[0]); exit(1); } // Check usage & args
 
@@ -90,10 +99,8 @@ int main(int argc, char *argv[]) {
 	/* Execute commands. */
 	/* If command is "-l": */
 	if(strcmp(command, "-l") == 0) {
-	printf("List directory requested on port %s\n", data_port);
-	//int count = countFiles();
-	// Referenced: https://www.geeksforgeeks.org/c-program-list-files-sub-directories-directory/		
-		struct dirent *de;	// Pointer for directory entry
+	printf("List directory requested on port %s\n", data_port);		
+		// struct dirent *de;	// Pointer for directory entry
 		int count = 0;	/* Initialize the number of files found in directory. */
 		/* Count number of files in the directory. */
 		count = countFiles(de, count);
@@ -144,11 +151,39 @@ int main(int argc, char *argv[]) {
 	else if(strcmp(command, "-g") == 0) {
 		printf("File \"%s\" requested on port %s\n", filename, data_port);
 		/* TO DO: Send file stuff here... */
+		int count = 0;	/* Initialize the number of files found in directory. */
+		/* Count number of files in the directory. */
+		count = countFiles(de, count);
 
+		char current_dir[count + 1][256];	// 2D Array to hold the directory.
+		getDirectory(de, count, current_dir);
 		/* Search for file. */
-			/* If we find it, do this: */
-			/* If we don't find it, do that: */
-		printf("Sending \"%s\" to %s:%s\n", filename, clientHost, data_port);
+		char ** files = create_string_array(100);
+		//int file_exists = does_file_exist(files, count, filename);
+		int fileFound = searchForFile(count, current_dir, filename);
+
+		// printf("fileFound value = %d\n", fileFound);	// Debugging: print value of fileFound.
+		/* If we don't find it, do that: */
+	    if (!fileFound) {
+	    	char * file_not_found = "File not found.";
+	    	send(establishedConnectionFD, file_not_found, 15, 0);
+	    	printf("File not found!\n");
+	    }
+	    /* If we find it, do this: */
+	    else {	// fileFound == 1
+	    	printf("Sending \"%s\" to %s:%s\n", filename, clientHost, data_port);
+	    	char * file_found = "File found.";
+	    	send(establishedConnectionFD, file_found, 11, 0);
+	    	/* Open file and copy contents to buffer. */
+	    	FILE* fileToRead = fopen(filename, "r");
+	    	fgets(buffer, 50000, fileToRead);
+	    	buffer[strcspn(buffer, "\n")] = '*'; // Remove the trailing \n that fgets adds with special character '*'.
+	    	fclose(fileToRead);
+	    	printf("%s\n", buffer);
+	    	charsRead = send(establishedConnectionFD, buffer, strlen(buffer), 0);
+	    	if (charsRead < 0) error("ERROR reading from socket");
+
+	    }	    
 	}
 	/* Default case: Invalid or empty command: */
 	else {
@@ -166,7 +201,8 @@ int main(int argc, char *argv[]) {
 	return 0;	
 }
 
-countFiles(struct dirent *de, int count) {
+int countFiles(struct dirent *de, int count) {
+		/* Referenced: https://www.geeksforgeeks.org/c-program-list-files-sub-directories-directory */
 		/* openDir() returns a pointer of DIR type. */
 		DIR *dir = opendir(".");
 		//int count = 0;
@@ -190,7 +226,7 @@ countFiles(struct dirent *de, int count) {
 		closedir(dir);
 }
 
-getDirectory(struct dirent *de, int count, char current_dir[count + 1][256]) {
+int getDirectory(struct dirent *de, int count, char current_dir[count + 1][256]) {
 		DIR *ent = opendir(".");
 		int i = 0;
 		while ((de = readdir(ent)) != NULL) {
@@ -206,6 +242,44 @@ getDirectory(struct dirent *de, int count, char current_dir[count + 1][256]) {
 		//printf("LAST INDEX = %s\n", current_dir[count]);	/*Debugging: Print last index to verify special character. */
 		/* Close the directory. */
 		closedir(ent);
+}
+
+char ** create_string_array(int size) {
+	/* Create heap string array. */
+	char ** array = malloc(size*sizeof(char *));
+	int i;
+	for (i = 0; i < size; i++) {
+		array[i] = malloc(100*sizeof(char));
+		memset(array[i], 0, sizeof(array[i]));
+	}
+	return array;
+}
+
+int does_file_exist(char ** files, int count, char * filename) {
+	int file_exists = 0;	// Boolean
+	int i;
+	for (i = 0; i < count; i++) {
+		if(strcmp(files[i], filename) == 0) {
+			file_exists = 1;
+		}
+	}
+	return file_exists;
+}
+
+
+// https://stackoverflow.com/questions/17323748/how-to-search-a-word-in-a-2d-string-array-in-c-programming
+int searchForFile(int count, char current_dir[count + 1][256], char * filename) {
+	int fileFound = 0;	/* Boolean */
+	int i;
+	for (i = 0; i < count; i++) {
+		if (strstr(current_dir[i], filename) != NULL) {
+			printf("Found %s in position %d,%s\n", filename, i + 1,
+				current_dir[i]);
+			printf(" index of file is %d.\n", i + 1);
+			fileFound = 1;
+		}
+	}
+	return fileFound;
 }
 
 // printDirectoryTest(char *current_dir, char *buffer, int charsRead, int establishedConnectionFD, int count) {
