@@ -1,12 +1,20 @@
 /************************************************************
 * Name: Tristan Santiago
 * Date: May 26, 2019
-* Description:
+* Description: ftserver.c starts on a command-line specified
+* host and waits for a connection from ftclient.py. Once the
+* connection has been established, the command is processed
+* and the results are sent back to the client. I borrowed
+* heavily from my CS344 OTP submission, which of was based on
+* code provided from the instructor in CS344 (server.c) &
+* (client.c). Additionally sources used are found in comments
+* throughout the program.
 *************************************************************/
 #include <stdio.h>
 #include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
@@ -18,12 +26,13 @@ int getDirectory(struct dirent *de, int count, char current_dir[count + 1][256])
 int searchForFile(int count, char current_dir[count + 1][256], char * filename);
 char ** create_string_array(int size);
 int does_file_exist(char ** files, int count, char * filename);
+char* readFile(char* fileName);
 
 int main(int argc, char *argv[]) {
 	int i, listenSocketFD, establishedConnectionFD, portNumber, charsRead, charsWritten;
 	socklen_t sizeOfClientInfo;
 	//int count = 0;	/* Variable to hold the number of files found in directory. */
-	char buffer[256];
+	char buffer[500000];
 	// char current_dir[count + 1][256];	// 2D Array to hold the directory.
 	struct sockaddr_in serverAddress, clientAddress;
 	struct dirent *de;	// Pointer for directory entry.
@@ -107,24 +116,6 @@ int main(int argc, char *argv[]) {
 
 		char current_dir[count + 1][256];	// 2D Array to hold the directory.
 		getDirectory(de, count, current_dir);
-		/* Store files found in directory for later use. */
-		// DIR *ent = opendir(".");
-		// char current_dir[count + 1][256];	// 2D Array to hold the directory.
-		// int i = 0;
-		// while ((de = readdir(ent)) != NULL) {
-		//  	if(strcmp(".", de->d_name) == 0 || strcmp("..", de->d_name) == 0) {
-		//  		continue;
-		//  	}
-		//  	strcpy(current_dir[i], de->d_name);
-		//  	i++;
-		//  	//printf("Test: %s\n", de->d_name);
-		// }
-		// /* Add special character to the end of the directory array. */
-		// strcpy(current_dir[count], "@");
-		// //printf("LAST INDEX = %s\n", current_dir[count]);	/*Debugging: Print last index to verify special character. */
-		// /* Close the directory. */
-		// closedir(ent);
-
 
 		/* Referenced: https://tinyurl.com/y3wottjy */
 		int number_to_send = (count + 1);
@@ -144,8 +135,6 @@ int main(int argc, char *argv[]) {
 			if (charsRead < 0) error("ERROR reading from socket");
 			//printf("SERVER: I received this from the client: \"%s\"\n", buffer);
 		}
-		//ptest(current_dir, count);
-		//printDirectoryTest(current_dir, buffer, charsRead, establishedConnectionFD, count);
 	}
 	/* If command = "-g": */
 	else if(strcmp(command, "-g") == 0) {
@@ -171,19 +160,51 @@ int main(int argc, char *argv[]) {
 	    }
 	    /* If we find it, do this: */
 	    else {	// fileFound == 1
+	    	int n = 0;
+	    	int bufferLength;
 	    	printf("Sending \"%s\" to %s:%s\n", filename, clientHost, data_port);
+	    	/* Send success message to client. */
 	    	char * file_found = "File found.";
 	    	send(establishedConnectionFD, file_found, 11, 0);
-	    	/* Open file and copy contents to buffer. */
-	    	FILE* fileToRead = fopen(filename, "r");
-	    	fgets(buffer, sizeof(buffer) - 1, fileToRead);
-	    	buffer[strcspn(buffer, "\n")] = '*'; // Remove the trailing \n that fgets adds with special character '*'.
-	    	fclose(fileToRead);
-	    	printf("%s\n", buffer);
-	    	charsWritten = send(establishedConnectionFD, buffer, strlen(buffer), 0);
-	    	if (charsWritten < 0) error("ERROR reading from socket");
+	    	
+	    	char *toSend;
+	    	toSend = readFile(filename);
 
-	    }	    
+	    	/* Send file size to client. */
+	    	int file_size = strlen(toSend);
+	    	int converted_size = htonl(file_size);
+	    	printf("Size of file: %d\n", file_size);
+	    	printf("Converted size: %d\n", converted_size);
+	    	charsRead = send(establishedConnectionFD, &converted_size, sizeof(converted_size), 0);
+	    	if (charsRead < 0) error("ERROR reading from socket");
+
+	    	// strcpy(buffer, toSend);
+	    	// strcat(buffer, "@");
+	    	// printf("Buffer: %s\n", buffer);
+
+	   //  	do {
+		  //   	charsWritten = send(establishedConnectionFD, buffer, strlen(buffer), 0);
+				// if (charsWritten < 0) error("ERROR reading from socket");
+				// if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
+	   //  	} while(buffer[bufferLength - 1] != '@'); 	// Read until we find special terminating character.
+	    	
+	    	/* Send contents of the file to the client. */
+	    	// strcpy(buffer, toSend);	// Debugging: Verify the contents of toSend.
+	    	// printf("BUFFER = %s\n", buffer);	// Debugging: Verify contents of toSend.
+	    	charsWritten = send(establishedConnectionFD, toSend, strlen(toSend), 0);
+	    	if (charsWritten < 0) error("ERROR reading from socket");
+			if (charsWritten < strlen(toSend)) printf("CLIENT: WARNING: Not all data written to socket!\n");
+			printf("Characters written: %d\n", charsWritten);	// Debugging: Verify all characters sent through socket.
+
+	  //   	memset(buffer, '\0', sizeof(buffer));
+	  //   	strcpy(buffer, "__@__");	// Special character
+	  //   	//printf("Buffer = %s\n", buffer);
+	  //   	charsWritten = send(establishedConnectionFD, buffer, strlen(buffer), 0);
+			// if (charsWritten < 0) error("ERROR reading from socket");
+			// if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
+	    	
+	    	close(establishedConnectionFD);
+	    }
 	}
 	/* Default case: Invalid or empty command: */
 	else {
@@ -266,38 +287,53 @@ int does_file_exist(char ** files, int count, char * filename) {
 	return file_exists;
 }
 
-
 // https://stackoverflow.com/questions/17323748/how-to-search-a-word-in-a-2d-string-array-in-c-programming
 int searchForFile(int count, char current_dir[count + 1][256], char * filename) {
 	int fileFound = 0;	/* Boolean */
 	int i;
 	for (i = 0; i < count; i++) {
 		if (strstr(current_dir[i], filename) != NULL) {
-			printf("Found %s in position %d,%s\n", filename, i + 1,
-				current_dir[i]);
-			printf(" index of file is %d.\n", i + 1);
+			// printf("Found %s in position %d,%s\n", filename, i + 1,
+			// 	current_dir[i]);
+			// printf(" index of file is %d.\n", i + 1);
 			fileFound = 1;
 		}
 	}
 	return fileFound;
 }
 
-// printDirectoryTest(char *current_dir, char *buffer, int charsRead, int establishedConnectionFD, int count) {
-// 	int i;
-// 	printf("PRINT TEST\n");
-// 	for (i = 0; i < (count+1); i++) {
-// 		printf("Index[%d]: %c\n", i, current_dir[i]);
-// 		charsRead = send(establishedConnectionFD, current_dir[i], strlen(current_dir[i]), 0);
-// 		memset(buffer, '\0', sizeof(buffer));
-// 		charsRead = recv(establishedConnectionFD, buffer, 255, 0); // Read the client's message from the socket
-// 		if (charsRead < 0) error("ERROR reading from socket");
-// 		//printf("SERVER: I received this from the client: \"%s\"\n", buffer);
-// 		}
-// }
-
-// ptest(char (*current_dir)[5], int count) {
-// 	int i;
-// 	for (i = 0; i < (count+1); i++) {
-// 		printf("Index[%d]: %s\n", i, current_dir[i]);
-// 	}
-// }
+// Referenced: https://stackoverflow.com/questions/2029103/correct-way-to-read-a-text-file-into-a-buffer-in-c
+char* readFile(char* fileName) {
+	char *source = NULL;
+	/* Open the file. */
+	FILE* fp = fopen(fileName, "r");
+	if (fp == NULL) {	// If file can't be found:
+		error("Unable to open file");	// Throw an error.
+	}
+	/* If file is found: */
+	if (fp != NULL) {
+		if (fseek(fp, 0L, SEEK_END) == 0) { // Move the file pointer to the end of the file.
+			long bufSize = ftell(fp);	// Get the size of the file and assign it to variable.
+			if (bufSize == -1) {
+				error("Invalid file");
+				exit(1);
+			}
+			/* Allocate our buffer to that size. */
+			source = malloc(sizeof(char) * (bufSize + 1));
+			/* Go back to the start of the file. */
+			if (fseek(fp, 0L, SEEK_SET) != 0) { // Return the file pointer back to the beginning of the file.
+				error("Unable to read file");
+			}
+			/* Read the entire file into memory. */
+			size_t newLen = fread(source, sizeof(char), bufSize, fp);
+			if ( ferror( fp ) != 0 ) {
+				fputs("Error reading file", stderr);
+			}
+			else {
+				source[newLen++] = '\0'; /* Just to be safe. */
+			}
+		}
+	}
+	fclose(fp);
+	return source;
+}
