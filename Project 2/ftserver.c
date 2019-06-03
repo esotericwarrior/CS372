@@ -171,30 +171,32 @@ int main(int argc, char *argv[]) {
 	    	toSend = readFile(filename);
 
 	    	/* Send file size to client. */
-	    	int file_size = strlen(toSend);
-	    	int converted_size = htonl(file_size);
-	    	printf("Size of file: %d\n", file_size);
-	    	printf("Converted size: %d\n", converted_size);
-	    	charsRead = send(establishedConnectionFD, &converted_size, sizeof(converted_size), 0);
-	    	if (charsRead < 0) error("ERROR reading from socket");
+	    	// int file_size = strlen(toSend);
+	    	// int converted_size = htonl(file_size);
+	    	// printf("Size of file: %d\n", file_size);
+	    	// printf("Converted size: %d\n", converted_size);
+	    	// charsRead = send(establishedConnectionFD, &converted_size, sizeof(converted_size), 0);
+	    	// if (charsRead < 0) error("ERROR reading from socket");
 
-	    	// strcpy(buffer, toSend);
+	    	strcpy(buffer, toSend);
 	    	// strcat(buffer, "@");
-	    	// printf("Buffer: %s\n", buffer);
+	    	//printf("Buffer: %s\n", buffer);
 
-	   //  	do {
-		  //   	charsWritten = send(establishedConnectionFD, buffer, strlen(buffer), 0);
-				// if (charsWritten < 0) error("ERROR reading from socket");
-				// if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
-	   //  	} while(buffer[bufferLength - 1] != '@'); 	// Read until we find special terminating character.
 	    	
 	    	/* Send contents of the file to the client. */
 	    	// strcpy(buffer, toSend);	// Debugging: Verify the contents of toSend.
 	    	// printf("BUFFER = %s\n", buffer);	// Debugging: Verify contents of toSend.
-	    	charsWritten = send(establishedConnectionFD, toSend, strlen(toSend), 0);
+	  //   	charsWritten = send(establishedConnectionFD, toSend, strlen(toSend), 0);
+	  //   	if (charsWritten < 0) error("ERROR reading from socket");
+			// if (charsWritten < strlen(toSend)) printf("CLIENT: WARNING: Not all data written to socket!\n");
+			// printf("Characters written: %d\n", charsWritten);	// Debugging: Verify all characters sent through socket.
+
+			/* Send contents of the file to the client. */
+	    	charsWritten = send(establishedConnectionFD, buffer, strlen(buffer), 0);
 	    	if (charsWritten < 0) error("ERROR reading from socket");
-			if (charsWritten < strlen(toSend)) printf("CLIENT: WARNING: Not all data written to socket!\n");
+			if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
 			printf("Characters written: %d\n", charsWritten);	// Debugging: Verify all characters sent through socket.
+
 
 	  //   	memset(buffer, '\0', sizeof(buffer));
 	  //   	strcpy(buffer, "__@__");	// Special character
@@ -208,7 +210,7 @@ int main(int argc, char *argv[]) {
 	}
 	/* Default case: Invalid or empty command: */
 	else {
-		printf("Test\n");
+		printf("Invalid command entered.\n");
 	}
 
 	/* Send a Success message back to the client. */

@@ -12,6 +12,7 @@ import socket
 import sys
 import struct
 import time
+import os.path
 
 #def setupConnection(server_port):  # Function responsible for setting up the socket.
 def setupConnection(server_name, server_port):
@@ -47,15 +48,6 @@ def sendCommand(socket, command):
 	except:
 		print ("Error sending '%s' command" % (command), 1)
 
-def get_file(data_socket):
-	# data_socket.send("ok")
-	# Open a file for writing.
-	f = open(sys.argv[4], "w")	# 4th argument is the file's name.
-	receivedMessage = data_socket.recv(1024)
-	while "__*__" not in receivedMessage:	# Write until we encounter our special character.
-		f.write(receivedMessage)
-		receivedMessage = data_socket.recv(1024)
-
 def bytes_to_number(b):
 	# if Python2.x
 	b = map(ord, b)
@@ -64,6 +56,15 @@ def bytes_to_number(b):
 		res += b[i] << (i*8)
 	return res
 
+# Referenced: https://stackoverflow.com/questions/17667903/python-socket-receive-large-amount-of-data/34236030
+def recvall(sock, n):
+	data = b''
+	while len(data) < n:
+		packet = sock.recv(n - len(data))
+		if not packet:
+			return None
+		data += packet
+	return data
 
 if __name__ == "__main__":
 	validate_args()
@@ -72,7 +73,7 @@ if __name__ == "__main__":
 	server_name = sys.argv[1]	# Server host name.
 	server_port = sys.argv[2]	# Server port number.
 	command = sys.argv[3]	# Command line argument.
-	filename = "filename"	# Initialize to empty string.
+	filename = "filename"	# Initialize to default string.
 	if command == '-g':	# If the "-g" command is used:
 		filename = sys.argv[4]	# Assign filename.
 
@@ -150,9 +151,34 @@ if __name__ == "__main__":
 		# clientSocket.send("ok")
 		# size = clientSocket.recv(4)
 		# size = bytes_to_number(size)
-		# print "size is ", size
+		#print ("Size: ", size)
+
+		overwrite = True
+		# Check for existing copy of requested file.
+		# http://stackoverflow.com/questions/82831/check-whether-a-file-exists-using-python
+		if os.path.isfile(filename):
+			# Prompt for overwrite
+			choice = raw_input("File Already Exists; Overwrite? (y/n)")
+			if choice == 'y':
+				overwrite = True
+			else:
+				overwrite = False
+		if overwrite == False:
+			filename = filename + ".copy"
 
 		# Receive contents of the file from server.
+		# with open(filename, 'w+') as f:
+		# 	data = b''
+		# 	while len(receivedMessage) < size:
+		# 		receivedMessage = clientSocket.recv(size - len(data))
+		# 		if not receivedMessage:
+		# 			break
+		# 		# Write incoming data to file.
+		# 		f.write(receivedMessage)
+		# 		data += receivedMessage
+		# f.close()
+
+		# # Receive contents of the file from server.
 		with open(filename, 'wb') as f:
 			print 'File opened'
 			while True:
@@ -167,10 +193,6 @@ if __name__ == "__main__":
 				except:
 					print ("Error writing from socket.")
 		f.close()
-		# print("File successfully downloaded.")
 
-		# receivedMessage = clientSocket.recv(1024)
-		# with open(filename, 'w') as f:
-		# 	f.write(receivedMessage)
-
+		print("Transfer complete.")
 	clientSocket.close()
