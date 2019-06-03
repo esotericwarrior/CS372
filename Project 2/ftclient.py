@@ -2,12 +2,16 @@
 #****************************************************************************
 # Name: Tristan Santiago
 # Date: May 28, 2019
-# Description:
-# Referenced: https://pymotw.com/2/socket/tcp.html
+# Description: ftclient.py connects to the ftserver.c and sends the request
+# specified on the command line. I started with the chatServe.py program from
+# Project 1 and modified my way from there, using a variety of sources to
+# help me along the way, including: https://pymotw.com/2/socket/tcp.html
+# Other sources used are mentioned throughout the program.
 #****************************************************************************
 import socket
 import sys
 import struct
+import time
 
 #def setupConnection(server_port):  # Function responsible for setting up the socket.
 def setupConnection(server_name, server_port):
@@ -18,22 +22,6 @@ def setupConnection(server_name, server_port):
     except:
     	print("Error connecting to port %d\n" % (server_port), 1)
     return clientSocket
-
-    # Bind the socket to the port.
-    #HOST = socket.gethostname()	# Get host name.
-    # if sys.argv[3] == "-l":
-    # 	portNum = 2
-    # elif sys.argv[3] == "-g":
-    # 	portNum = 5
-    # PORT = int(sys.argv[portNum])	# Transform the port into an integer.
-    # print('HOST: ', HOST)   # Print Host information to make connecting with the chat client easier.
-    # print('PORT:', PORT)    # Print the Port as well.
-
-    # try:
-    # 	sock.connect((HOST, PORT))
-    # except:
-    # 	print("Error connecting to port %d" % (PORT), 1)
-    # return sock     # Return created socket to be stored in a variable for later use.
 
 def validate_args():
 	if len(sys.argv) < 5 or len(sys.argv) > 6:
@@ -52,18 +40,30 @@ def validate_args():
 		if (int(sys.argv[5]) < 1024 or (int(sys.argv[5]) > 65535)):
 			print "Invalid port number. Enter a port number within the range of 1024 to 65535."
 			exit(1)
-	# elif (int(sys.argv[2]) < 1024 or (int(sys.argv[2]) > 65535)):
-	# 	print "Invalid port number. Enter a port number within the range of 1024 to 65535."
-	# 	exit(1)
-	# elif (int(sys.argv[5]) < 1024 or (int(sys.argv[5]) > 65535)):
-	# 	print "Invalid port number. Enter a port number within the range of 1024 to 65535."
-	# 	exit(1)
 
 def sendCommand(socket, command):
 	try:
 		clientSocket.send(command)
 	except:
 		print ("Error sending '%s' command" % (command), 1)
+
+def get_file(data_socket):
+	# data_socket.send("ok")
+	# Open a file for writing.
+	f = open(sys.argv[4], "w")	# 4th argument is the file's name.
+	receivedMessage = data_socket.recv(1024)
+	while "__*__" not in receivedMessage:	# Write until we encounter our special character.
+		f.write(receivedMessage)
+		receivedMessage = data_socket.recv(1024)
+
+def bytes_to_number(b):
+	# if Python2.x
+	b = map(ord, b)
+	res = 0
+	for i in range(4):
+		res += b[i] << (i*8)
+	return res
+
 
 if __name__ == "__main__":
 	validate_args()
@@ -138,53 +138,39 @@ if __name__ == "__main__":
 		receivedMessage = clientSocket.recv(1024)
 		#print("Message received from server: " + receivedMessage)
 
-	# # Send filename.
-	# clientSocket.send(filename)
-	# #receivedMessage = clientSocket.recv(1024)
-	# #print("Message received from server: " + receivedMessage)
+		# Determine whether or not file exists.
+		clientSocket.send("ok")
+		receivedMessage = clientSocket.recv(1024)
+		# If the server doesn't respond with "File found." message:
+		if receivedMessage != "File found.":
+			print("Message received from server: " + receivedMessage)	# Print error message & exit.
+			exit(1)	# Return statement doesn't work here for some reason.
 
-	# # Send data port.
-	# clientSocket.send(data_port)
-	# receivedMessage = clientSocket.recv(1024)
-	# #print("Message received from server: " + receivedMessage)
+		# Get file size from the server.
+		# clientSocket.send("ok")
+		# size = clientSocket.recv(4)
+		# size = bytes_to_number(size)
+		# print "size is ", size
 
-	# # Receive size of directory.
-	# # https://stackoverflow.com/questions/33913308/socket-module-how-to-send-integer
-	# size = clientSocket.recv(4)
-	# # print "size is ", size
-	# # print "repr(size) is ", repr(size)
-	# dir_size = struct.unpack("!i", size)[0]
-	# #print "Number of files in directory = ", dir_size
-	# clientSocket.send("ok")
+		# Receive contents of the file from server.
+		with open(filename, 'wb') as f:
+			print 'File opened'
+			while True:
+				try:
+					#print('Receiving data...')
+					receivedMessage = clientSocket.recv(1024)
+					#print('receivedMessage=%s', (receivedMessage))
+					if not receivedMessage:
+						break
+					# Write incoming data to file.
+					f.write(receivedMessage)
+				except:
+					print ("Error writing from socket.")
+		f.close()
+		# print("File successfully downloaded.")
 
-	# times_to_repeat = dir_size
-	# while times_to_repeat >= 0:
-	# 	receivedMessage = clientSocket.recv(1024)
-	# 	if (receivedMessage != "@"):
-	# 		print receivedMessage
-	# 		clientSocket.send("ok")
-	# 		times_to_repeat -= 1
-	# 	elif (receivedMessage == "@"):
-	# 		break
-
-	# receivedMessage = clientSocket.recv(1024)
-	# print("Index 0: " + receivedMessage)
-	# clientSocket.send("ok")
-	
-	# receivedMessage = clientSocket.recv(1024)
-	# print("Index 1: " + receivedMessage)
-	# clientSocket.send("ok")
-
-	# receivedMessage = clientSocket.recv(1024)
-	# print("Index 2: " + receivedMessage)
-	# clientSocket.send("ok")
-
-	# receivedMessage = clientSocket.recv(1024)
-	# print("Index 3: " + receivedMessage)
-	# clientSocket.send("ok")
-
-	# receivedMessage = clientSocket.recv(1024)
-	# print("Index 4: " + receivedMessage)
-	# clientSocket.send("ok")
+		# receivedMessage = clientSocket.recv(1024)
+		# with open(filename, 'w') as f:
+		# 	f.write(receivedMessage)
 
 	clientSocket.close()
